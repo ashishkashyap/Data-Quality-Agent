@@ -1,0 +1,67 @@
+{
+  "table_id": "products_dim",
+  "db_table_name": "analytics.products_dim",
+
+  "primary_keys": ["product_id"],
+
+  "business_date_column": "last_updated_at",
+
+  "critical_columns": [
+    "product_id",
+    "sku",
+    "product_name",
+    "product_category",
+    "is_active",
+    "list_price",
+    "standard_cost",
+    "unit_of_measure"
+  ],
+
+  "owners": {
+    "slack_channel": "#product-data",
+    "email": "product.data.owner@nitco.com"
+  },
+
+  "rules": {
+    "min_row_count": 20,
+    "row_count_vs_7d_percent_drop_alert": 20,
+    "freshness_lag_hours": 72,
+
+    "max_null_pct": {
+      "product_id": 0.0,
+      "sku": 2.0,
+      "product_name": 1.0,
+      "product_category": 2.0,
+      "is_active": 1.0,
+      "list_price": 2.0,
+      "standard_cost": 5.0
+    }
+  },
+
+  "dq_checks": {
+    "accuracy_checks": {
+      "non_negative_prices": "list_price >= 0 AND COALESCE(min_price, 0) >= 0 AND COALESCE(max_price, 0) >= 0 AND COALESCE(standard_cost, 0) >= 0",
+      "list_within_min_max": "min_price IS NULL OR max_price IS NULL OR (min_price <= list_price AND list_price <= max_price)",
+      "cost_not_exceed_list": "standard_cost IS NULL OR list_price IS NULL OR standard_cost <= list_price + 0.01"
+    },
+
+    "validity_checks": {
+      "valid_uom": "unit_of_measure IN ('EACH','KG','LITER','BOX','PACK')",
+      "active_has_category": "NOT is_active OR product_category IS NOT NULL",
+      "valid_tax_category": "tax_category IS NULL OR tax_category IN ('STANDARD','REDUCED','ZERO','EXEMPT')"
+    },
+
+    "consistency_checks": {
+      "discontinue_after_launch": "discontinue_date IS NULL OR (launch_date IS NOT NULL AND discontinue_date >= launch_date)",
+      "inactive_has_discontinue_date": "NOT is_active OR discontinue_date IS NOT NULL"
+    },
+
+    "fk_constraints": {
+      "brand_fk": {
+        "fk_column": "brand",
+        "ref_table": "analytics.brand_dim",
+        "ref_column": "brand_name"
+      }
+    }
+  }
+}

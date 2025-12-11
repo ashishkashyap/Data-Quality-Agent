@@ -1,0 +1,71 @@
+{
+  "table_id": "customers_dim",
+  "db_table_name": "analytics.customers_dim",
+
+  "primary_keys": ["customer_id"],
+
+  "business_date_column": "last_updated_at",
+
+  "critical_columns": [
+    "customer_id",
+    "customer_name",
+    "email",
+    "customer_type",
+    "customer_segment",
+    "loyalty_tier",
+    "country",
+    "sales_region",
+    "is_active"
+  ],
+
+  "owners": {
+    "slack_channel": "#customer-data",
+    "email": "customer.data.owner@nitco.com"
+  },
+
+  "rules": {
+    "min_row_count": 50,
+    "row_count_vs_7d_percent_drop_alert": 20,
+    "freshness_lag_hours": 48,
+
+    "max_null_pct": {
+      "customer_id": 0.0,
+      "customer_name": 1.0,
+      "email": 5.0,
+      "customer_type": 2.0,
+      "customer_segment": 5.0,
+      "loyalty_tier": 5.0,
+      "country": 2.0,
+      "sales_region": 5.0,
+      "is_active": 1.0
+    }
+  },
+
+  "dq_checks": {
+    "accuracy_checks": {
+      "active_has_signup_date": "NOT is_active OR signup_date IS NOT NULL",
+      "inactive_has_churn_date": "is_active OR churn_date IS NOT NULL"
+    },
+
+    "validity_checks": {
+      "valid_customer_type": "customer_type IN ('B2B','B2C','WHOLESALE')",
+      "valid_loyalty_tier": "loyalty_tier IN ('PLATINUM','GOLD','SILVER','BRONZE','NONE')",
+      "valid_email_format": "email IS NULL OR email LIKE '%@%'",
+      "valid_country_not_empty": "country IS NOT NULL AND country <> ''"
+    },
+
+    "consistency_checks": {
+      "churn_after_signup": "churn_date IS NULL OR (signup_date IS NOT NULL AND churn_date >= signup_date)",
+      "active_without_churn": "is_active OR churn_date IS NOT NULL",
+      "inactive_not_recent_signup": "NOT (is_active = FALSE AND signup_date > CURRENT_DATE - INTERVAL '1 day')"
+    },
+
+    "fk_constraints": {
+      "sales_rep_fk": {
+        "fk_column": "sales_rep_id",
+        "ref_table": "analytics.sales_rep_dim",
+        "ref_column": "sales_rep_id"
+      }
+    }
+  }
+}

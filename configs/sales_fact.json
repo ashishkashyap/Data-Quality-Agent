@@ -1,0 +1,100 @@
+{
+  "table_id": "sales_fact",
+  "db_table_name": "analytics.sales_fact",
+
+  "primary_keys": ["order_id", "line_item_id"],
+
+  "business_date_column": "order_date",
+
+  "critical_columns": [
+    "order_id",
+    "line_item_id",
+    "customer_id",
+    "product_id",
+    "order_date",
+    "total_amount",
+    "status",
+    "order_status",
+    "payment_status",
+    "fulfillment_status",
+    "currency_code",
+    "sales_region",
+    "source_system"
+  ],
+
+  "owners": {
+    "slack_channel": "#sales-data",
+    "email": "sales.data.owner@nitco.com"
+  },
+
+  "rules": {
+    "min_row_count": 500,
+    "row_count_vs_7d_percent_drop_alert": 30,
+    "freshness_lag_hours": 24,
+
+    "max_null_pct": {
+      "order_id": 0.0,
+      "line_item_id": 0.0,
+      "customer_id": 5.0,
+      "product_id": 5.0,
+      "order_date": 0.0,
+      "total_amount": 5.0,
+      "order_status": 5.0,
+      "payment_status": 5.0,
+      "fulfillment_status": 5.0
+    }
+  },
+
+  "dq_checks": {
+    "accuracy_checks": {
+      "unit_price_non_negative": "unit_price >= 0",
+      "quantity_positive": "quantity > 0",
+      "total_amount_non_negative": "total_amount >= 0",
+      "total_amount_matches_components": "ABS(total_amount - ((unit_price * quantity) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0) + COALESCE(shipping_amount, 0))) <= 0.01",
+      "gross_margin_calculation": "ABS(gross_margin - (net_revenue - cost_of_goods_sold)) <= 0.01",
+      "refund_amount_reasonable": "NOT is_refund OR (refund_amount >= 0 AND refund_amount <= total_amount + 0.01)"
+    },
+
+    "validity_checks": {
+      "valid_order_status": "order_status IN ('CREATED','PAID','SHIPPED','DELIVERED','CANCELLED','REFUNDED','RETURNED')",
+      "valid_payment_status": "payment_status IN ('PENDING','PAID','DECLINED','REFUNDED','PARTIAL')",
+      "valid_fulfillment_status": "fulfillment_status IN ('PENDING','IN_PROGRESS','FULFILLED','PARTIAL','CANCELLED')",
+      "valid_currency_code": "currency_code ~ '^[A-Z]{3}$'",
+      "valid_payment_method": "payment_method IN ('CARD','CASH','ACH','WIRE','PAYPAL','OTHER')",
+      "valid_sales_channel": "sales_channel IN ('ONLINE','RETAIL','PARTNER','CALL_CENTER')"
+    },
+
+    "consistency_checks": {
+      "ship_after_order": "shipped_date IS NULL OR shipped_date >= order_date",
+      "deliver_after_ship": "actual_delivery_date IS NULL OR shipped_date IS NULL OR actual_delivery_date >= shipped_date",
+      "paid_orders_have_payment_date": "order_status <> 'PAID' OR payment_date IS NOT NULL",
+      "paid_orders_have_positive_amount": "order_status <> 'PAID' OR total_amount > 0",
+      "cancelled_orders_no_delivery": "order_status <> 'CANCELLED' OR actual_delivery_date IS NULL",
+      "refund_logic": "NOT is_refund OR (refund_amount > 0 AND order_status IN ('REFUNDED','RETURNED','CANCELLED'))",
+      "sla_flag_consistent": "delivery_sla_met IS NULL OR actual_delivery_date IS NULL OR estimated_delivery_date IS NULL OR (delivery_sla_met = (actual_delivery_date <= estimated_delivery_date))"
+    },
+
+    "fk_constraints": {
+      "customer_fk": {
+        "fk_column": "customer_id",
+        "ref_table": "analytics.customers_dim",
+        "ref_column": "customer_id"
+      },
+      "product_fk": {
+        "fk_column": "product_id",
+        "ref_table": "analytics.products_dim",
+        "ref_column": "product_id"
+      },
+      "store_fk": {
+        "fk_column": "store_id",
+        "ref_table": "analytics.stores_dim",
+        "ref_column": "store_id"
+      },
+      "sales_rep_fk": {
+        "fk_column": "sales_rep_id",
+        "ref_table": "analytics.sales_rep_dim",
+        "ref_column": "sales_rep_id"
+      }
+    }
+  }
+}
