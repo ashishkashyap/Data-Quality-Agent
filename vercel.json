@@ -1,16 +1,9 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "api/index.py"
+      "source": "/(.*)",
+      "destination": "/api/index.py"
     }
-  ],
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "excludeFiles": "**/__pycache__/**|**/*.pyc|**/*.pyo|**/*.pyd|**/.git/**|**/node_modules/**|**/.venv/**|**/venv/**|**/env/**|**/ENV/**|**/*.log|**/.DS_Store|**/dq_service.py.txt"
-    }
-  }
+  ]
 }
-
 
